@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="RegistryApplication" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="com.alipay.sofa.registry.server.integration.RegistryApplication" />
+    <module name="registry-server-integration" />
+    <option name="VM_PARAMETERS" value="-Dloopback_as_local_address=true" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="com.alipay.sofa.registry.server.integration.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
