@@ -67,6 +67,10 @@ public class NetUtil {
           ? Collections.emptyList()
           : Arrays.asList(
               StringUtils.trim(System.getProperty(NETWORK_INTERFACE_DENYLIST)).split(","));
+  
+  private static final String LOOPBACK_AS_LOCAL_ADDRESS = "loopback_as_local_address";
+  private static final boolean LOOPBACK_AS_LOCAL_ADDRESS_VALUE = "true".equals(
+          SystemUtils.getSystem(LOOPBACK_AS_LOCAL_ADDRESS));
 
   /**
    * Gen host string.
@@ -131,7 +135,7 @@ public class NetUtil {
     if (LOCAL_ADDRESS != null) {
       return LOCAL_ADDRESS;
     }
-    InetAddress localAddress = getLocalAddress0();
+    InetAddress localAddress = LOOPBACK_AS_LOCAL_ADDRESS_VALUE ? InetAddress.getLoopbackAddress() : getLocalAddress0();
     LOCAL_ADDRESS = localAddress;
     return localAddress;
   }
