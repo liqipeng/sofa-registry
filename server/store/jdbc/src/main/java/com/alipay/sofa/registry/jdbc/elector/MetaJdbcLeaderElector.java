@@ -52,9 +52,39 @@ public class MetaJdbcLeaderElector extends AbstractLeaderElector implements Reco
    */
   @Override
   protected LeaderInfo doElect() {
+    // com.alipay.sofa.registry.store.api.elector.AbstractLeaderElector.init // @PostConstruct
+    //  -> [async] com.alipay.sofa.registry.store.api.elector.AbstractLeaderElector.LeaderElectorTrigger.runUnthrowable
+    //   -> com.alipay.sofa.registry.store.api.elector.AbstractLeaderElector.elect
+    //    -> com.alipay.sofa.registry.store.api.elector.AbstractLeaderElector.doElect
+    //     -> com.alipay.sofa.registry.jdbc.elector.MetaJdbcLeaderElector.doElect
+    
+    //distribute_lock表结构：
+    //CREATE TABLE distribute_lock (
+    //  id bigint(20) NOT NULL AUTO_INCREMENT primary key,
+    //  data_center varchar(128) NOT NULL,
+    //  lock_name varchar(1024) NOT NULL,
+    //  owner varchar(512) NOT NULL,
+    //  duration bigint(20) NOT NULL,
+    //  term     bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '任期',
+    //  term_duration    bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '租期',
+    //  gmt_create timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    //  gmt_modified timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, -- timestamp(3)精确到毫秒
+    //  UNIQUE KEY `uk_data_center_lock` (`data_center`, `lock_name`),
+    //  KEY `idx_lock_owner` (`owner`)
+    //);
+    
     // 1、查询锁
     DistributeLockDomain lock =
         distributeLockMapper.queryDistLock(defaultCommonConfig.getClusterId(tableName()), lockName);
+    // dataCenter/defaultCommonConfig.getClusterId(tableName()): DefaultDataCenter
+    // lockName: META-MASTER
+    // sql:
+    //   select
+    //   /*+ QUERY_TIMEOUT(2000000) */ *,
+    //   NOW(3) as gmt_db_server_time,
+    //   UNIX_TIMESTAMP(gmt_modified)*1000000000 as gmt_modified_unixnanos
+    //   from distribute_lock
+    //   where data_center = #{dataCenter} and lock_name = #{lockName}
 
     /** compete and return leader */
     // 2、不存在则创建锁
