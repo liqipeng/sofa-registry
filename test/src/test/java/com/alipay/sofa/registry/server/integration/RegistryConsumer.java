@@ -74,3 +74,75 @@ public class RegistryConsumer {
     }
   }
 }
+
+// [ 订阅者注册过程 Subscriber ]
+// ----- client-side ----------------------------------------------------------------------
+// com.alipay.sofa.registry.client.provider.DefaultRegistryClient.register(SubscriberRegistration)
+//  → 组装Subscriber: registration + workerThread + registryClientConfig => DefaultSubscriber   ( 同一个RegistryClient共享workerThread )
+//   → 缓存Subscriber: com.alipay.sofa.registry.client.provider.RegisterCache.addRegister(Subscriber)
+//    → com.alipay.sofa.registry.client.provider.DefaultRegistryClient.addRegisterTask
+//     → com.alipay.sofa.registry.client.task.WorkerThread.schedule(TaskEvent)
+//      → com.alipay.sofa.registry.client.task.WorkerThread.requestQueue.schedule(TaskEvent)
+//       → (async)
+//        → com.alipay.sofa.registry.client.task.WorkerThread.handle
+//         → com.alipay.sofa.registry.client.task.WorkerThread.requestQueue.remove
+//          → com.alipay.sofa.registry.client.task.WorkerThread.handleTask
+//           → com.alipay.sofa.registry.client.remoting.Client.invokeSync
+// ----- session-side ----------------------------------------------------------------------
+//            → com.alipay.remoting.rpc.protocol.RpcRequestProcessor.dispatchToUserProcessor
+//             → com.alipay.sofa.registry.remoting.bolt.SyncUserProcessorAdapter.handleRequest
+//              → com.alipay.sofa.registry.server.shared.remoting.AbstractChannelHandler.reply
+//               → com.alipay.sofa.registry.server.session.remoting.handler.SubscriberHandler.doHandle
+//                → com.alipay.sofa.registry.server.session.strategy.impl.DefaultSubscriberHandlerStrategy.handleSubscriberRegister
+//                 → com.alipay.sofa.registry.server.session.strategy.impl.DefaultSubscriberHandlerStrategy.handle
+//                  → com.alipay.sofa.registry.server.session.registry.Registry.register
+//                   → com.alipay.sofa.registry.server.session.store.SessionInterests.add
+//                    → com.alipay.sofa.registry.server.session.store.AbstractDataManager.addData
+//                     → com.alipay.sofa.registry.server.session.store.DataIndexer.add
+//                       → com.alipay.sofa.registry.server.session.store.DataIndexer.insert
+//                        → com.alipay.sofa.registry.server.session.store.DataIndexer.index.computeIfAbsent
+//                         → com.alipay.sofa.registry.server.session.store.AbstractDataManager.addDataToStore
+//                          → com.alipay.sofa.registry.server.session.store.SessionInterests.store.putIfAbsent
+//                 → com.alipay.sofa.registry.server.session.strategy.impl.DefaultSubscriberHandlerStrategy.log
+//                  → Metrics.Access.subCount
+// ++++ session-side ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
+// ______________________________________________________________________________________
+// [ 服务端 -> 客户端 通信 ]
+//
+// com.alipay.sofa.registry.client.remoting.ClientConnection.ClientConnection
+// ClientConnection初始化时传入了两个UserProcessor:
+//  - com.alipay.sofa.registry.client.remoting.ReceivedDataProcessor        ( interest: ReceivedData )
+//  - com.alipay.sofa.registry.client.remoting.ReceivedConfigDataProcessor  ( interest: ReceivedConfigData )
+//
+//
+// [ ReceivedDataProcessor ]
+// com.alipay.remoting.rpc.protocol.RpcRequestProcessor.dispatchToUserProcessor ( bolt )
+//  → com.alipay.sofa.registry.client.remoting.ReceivedDataProcessor.handleRequest
+//   → com.alipay.sofa.registry.client.provider.DefaultObserverHandler.notify(Subscriber)
+//    → com.alipay.sofa.registry.client.provider.DefaultObserverHandler.executor.submit(SubscriberNotifyTask)
+//     → (async)
+//      → com.alipay.sofa.registry.client.api.SubscriberDataObserver.handleData
+//
+// [ ReceivedConfigDataProcessor ]
+// com.alipay.remoting.rpc.protocol.RpcRequestProcessor.dispatchToUserProcessor ( bolt )
+//  → com.alipay.sofa.registry.client.remoting.ReceivedConfigDataProcessor.handleRequest
+//   → com.alipay.sofa.registry.client.provider.DefaultObserverHandler.notify(Configurator)
+//    → com.alipay.sofa.registry.client.provider.DefaultObserverHandler.executor.submit(ConfiguratorNotifyTask)
+//     → (async)
+//      → com.alipay.sofa.registry.client.api.ConfigDataObserver.handleData
+//
+//
+//   →
+//   →
+//   →
+//   →
+//   →
+//   →
+//   →
+//   →
+//   →
+//   →
+//   →
+//   →
+//   →
